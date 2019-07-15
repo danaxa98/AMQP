@@ -16,7 +16,7 @@ func (p publisher) changeRoutingKey(keys string) {
 	p.RoutingKey = keys
 }
 
-func (p publisher) publish(ch amqp.Channel, exchangeName string, body string) {
+func (p publisher) publish(ch *amqp.Channel, exchangeName string, body string) {
 	err := ch.Publish(
 		exchangeName,
 		p.RoutingKey,

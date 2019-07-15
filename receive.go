@@ -61,26 +61,9 @@ func main() {
 		failOnError(err, "Failed to bind a queue")
 	}
 
-	msgs, err := ch.Consume(
-		q.Name,
-		"",
-		false,
-		false,
-		false,
-		false,
-		nil,
-	)
-	failOnError(err, "Failed to register a consumer")
-
-	forever := make(chan bool)
-
-	go func() {
-		for d := range msgs {
-			log.Printf(" [x] %s", d.Body)
-		}
-	}()
-
-	log.Printf(" [*] Waiting for messages. To exit press CTRL+C")
-	<- forever
+	c := consumer{
+		Name: "Consumer 1",
+	}
+	c.register(ch, q)
 }
 

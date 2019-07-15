@@ -56,13 +56,19 @@ func main() {
 	failOnError(err, "Failed to declare a exchange")
 
 	body := bodyFrom(os.Args)
+
+	//c := publisher{
+	//	Name: "publisher 1",
+	//}
+	//c.changeRoutingKey(getRoutingKey(os.Args))
+	//c.publish(ch, exchangeName, body)
+
 	err = ch.Publish(
 		exchangeName,
 		getRoutingKey(os.Args),	//Routing key
 		false,
 		false,
 		amqp.Publishing {
-			//DeliveryMode:	amqp.Persistent,
 			ContentType: 	"text/plain",
 			Body:			[]byte(body),
 		})
