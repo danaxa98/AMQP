@@ -1,4 +1,4 @@
-package main
+package temp
 
 import (
 	"github.com/streadway/amqp"
@@ -57,8 +57,8 @@ func main() {
 
 	body := bodyFrom(os.Args)
 
-	//c := publisher{
-	//	Name: "publisher 1",
+	//c := Publisher{
+	//	Name: "Publisher 1",
 	//}
 	//c.changeRoutingKey(getRoutingKey(os.Args))
 	//c.publish(ch, exchangeName, body)

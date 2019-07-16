@@ -1,4 +1,4 @@
-package main
+package pkg
 
 import (
 	"github.com/streadway/amqp"
@@ -16,7 +16,7 @@ type RabbitMQ struct {
 	Body			string
 }
 
-func (rabbit *RabbitMQ) dial (url string) error {
+func (rabbit *RabbitMQ) Dial(url string) error {
 	var err error
 	rabbit.Connection, err = amqp.Dial(url)
 	if err != nil {
@@ -26,7 +26,7 @@ func (rabbit *RabbitMQ) dial (url string) error {
 	return nil
 }
 
-func (rabbit *RabbitMQ) openChannel () error {
+func (rabbit *RabbitMQ) OpenChannel() error {
 	var err error
 	rabbit.Channel, err = rabbit.Connection.Channel()
 	if err != nil {
@@ -36,7 +36,7 @@ func (rabbit *RabbitMQ) openChannel () error {
 	return nil
 }
 
-func (rabbit *RabbitMQ) declareExchange (exchangeName string, kind string) error {
+func (rabbit *RabbitMQ) DeclareExchange(exchangeName string, kind string) error {
 	err := rabbit.Channel.ExchangeDeclare(
 		exchangeName,
 		kind,
@@ -50,7 +50,7 @@ func (rabbit *RabbitMQ) declareExchange (exchangeName string, kind string) error
 	return err
 }
 
-func (rabbit *RabbitMQ) declareQueue (queueName string) error {
+func (rabbit *RabbitMQ) DeclareQueue(queueName string) error {
 
 	temp, err := rabbit.Channel.QueueDeclare(
 		queueName,
@@ -67,7 +67,7 @@ func (rabbit *RabbitMQ) declareQueue (queueName string) error {
 	return nil
 }
 
-func (rabbit *RabbitMQ) queueBind() error{
+func (rabbit *RabbitMQ) QueueBind() error{
 	if rabbit.Queue == nil {
 		//todo check for empty queue!
 	}
@@ -87,7 +87,7 @@ func (rabbit *RabbitMQ) queueBind() error{
 		)
 }
 
-func (rabbit *RabbitMQ) getRoutingKeyPublisher (args []string) {
+func (rabbit *RabbitMQ) GetRoutingKeyPublisher (args []string) {
 	var s string
 	if (len(args) < 2) || args[1] == "" {
 		s = "anonymous.info"
@@ -98,7 +98,7 @@ func (rabbit *RabbitMQ) getRoutingKeyPublisher (args []string) {
 	rabbit.RoutingKey = s
 }
 
-func (rabbit *RabbitMQ) getRoutingKeyConsumer () {
+func (rabbit *RabbitMQ) GetRoutingKeyConsumer() {
 	//if rabbit.Queue == nil {
 	//	//	//todo check for empty queue
 	//	//}
@@ -189,7 +189,7 @@ func (rabbit *RabbitMQ) register(consumerName string, callback func(msg []byte))
 	return nil
 }
 
-//todo if necessary, this function should return byte[] in order for consumer to process the body message further
+//todo if necessary, this function should return byte[] in order for Consumer to process the body message further
 func (rabbit *RabbitMQ) listen (messages <- chan amqp.Delivery, callback func(msg []byte)) {
 	forever := make(chan bool)
 
