@@ -8,35 +8,35 @@ import (
 
 //A wrapper for RabbitMQ
 type RabbitMQ struct {
-	Connection		*amqp.Connection
-	Channel			*amqp.Channel
-	Queue			*amqp.Queue
-	ExchangeName	string
-	RoutingKey		string
-	Body			string
+	Connection   *amqp.Connection
+	Channel      *amqp.Channel
+	Queue        *amqp.Queue
+	ExchangeName string
+	RoutingKeys  string
+	Body         string
 }
 
-func (rabbit *RabbitMQ) Dial(url string) error {
+func (rabbit *RabbitMQ) Dial(url string) RabbitError {
 	var err error
 	rabbit.Connection, err = amqp.Dial(url)
 	if err != nil {
 		defer rabbit.Connection.Close()
-		return err
+		return ConnectServerError
 	}
-	return nil
+	return Default
 }
 
-func (rabbit *RabbitMQ) OpenChannel() error {
+func (rabbit *RabbitMQ) OpenChannel() RabbitError {
 	var err error
 	rabbit.Channel, err = rabbit.Connection.Channel()
 	if err != nil {
 		defer rabbit.Channel.Close()
-		return err
+		return OpenChannelError
 	}
-	return nil
+	return Default
 }
 
-func (rabbit *RabbitMQ) DeclareExchange(exchangeName string, kind string) error {
+func (rabbit *RabbitMQ) DeclareExchange(exchangeName string, kind string) RabbitError {
 	err := rabbit.Channel.ExchangeDeclare(
 		exchangeName,
 		kind,
@@ -46,11 +46,14 @@ func (rabbit *RabbitMQ) DeclareExchange(exchangeName string, kind string) error 
 		false,
 		nil,
 	)
+	if err != nil {
+		return DeclareExchangeError
+	}
 	rabbit.ExchangeName = exchangeName
-	return err
+	return Default
 }
 
-func (rabbit *RabbitMQ) DeclareQueue(queueName string) error {
+func (rabbit *RabbitMQ) DeclareQueue(queueName string) RabbitError {
 
 	temp, err := rabbit.Channel.QueueDeclare(
 		queueName,
@@ -61,30 +64,34 @@ func (rabbit *RabbitMQ) DeclareQueue(queueName string) error {
 		nil,
 	)
 	if err != nil {
-		return err
+		return DeclareQueueError
 	}
 	rabbit.Queue = &temp
-	return nil
+	return Default
 }
 
-func (rabbit *RabbitMQ) QueueBind() error{
+func (rabbit *RabbitMQ) QueueBind() RabbitError {
 	if rabbit.Queue == nil {
-		//todo check for empty queue!
+		return EmptyQueue
 	}
 	if rabbit.ExchangeName == "" {
-		//todo check for empty exchange!
+		return EmptyExchange
 	}
-	if rabbit.RoutingKey == "" {
-		//todo check for empty routing key!
+	if rabbit.RoutingKeys == "" {
+		return EmptyRoutingKeys
 	}
 
-		return rabbit.Channel.QueueBind(
-			rabbit.Queue.Name, // queue Name
-			rabbit.RoutingKey, // routing key
+		err := rabbit.Channel.QueueBind(
+			rabbit.Queue.Name,  // queue Name
+			rabbit.RoutingKeys, // routing key
 			"logs_topics",
 			false,
 			nil,
 		)
+		if err != nil {
+			return BindQueueError
+		}
+		return Default
 }
 
 func (rabbit *RabbitMQ) GetRoutingKeyPublisher (args []string) {
@@ -95,7 +102,7 @@ func (rabbit *RabbitMQ) GetRoutingKeyPublisher (args []string) {
 	} else {
 		s = args[1]
 	}
-	rabbit.RoutingKey = s
+	rabbit.RoutingKeys = s
 }
 
 func (rabbit *RabbitMQ) GetRoutingKeyConsumer() {
@@ -113,12 +120,12 @@ func (rabbit *RabbitMQ) GetRoutingKeyConsumer() {
 	//	//
 	//	//log.Println(args)
 	//	//for _, s := range args[:1] {
-	//	//	rabbit.RoutingKey = s
+	//	//	rabbit.RoutingKeys = s
 	//	//	log.Printf("Binding queue %s to exchange %s with routing key %s",
 	//	//		rabbit.Queue.Name, rabbit.ExchangeName, s)
 	//	//	rabbit.queueBind()
 	//	//}
-	rabbit.RoutingKey = "hello.world"
+	rabbit.RoutingKeys = "hello.world"
 }
 
 func (rabbit *RabbitMQ) getBody (args []string) {
@@ -132,24 +139,24 @@ func (rabbit *RabbitMQ) getBody (args []string) {
 	rabbit.Body = s
 }
 
-func (rabbit *RabbitMQ) publish (contentType string) error {
+func (rabbit *RabbitMQ) publish (contentType string) RabbitError {
 	if rabbit.Channel == nil {
-		//todo check for empty channel!
+		return EmptyChannel
 	}
 	if rabbit.ExchangeName == "" {
-		//todo check for empty exchange!
+		return EmptyExchange
 	}
 	if rabbit.Body == "" {
-		//todo check for empty body!
+		return EmptyBody
 	}
-	if rabbit.RoutingKey == "" {
-		//todo check for empty routing key!
+	if rabbit.RoutingKeys == "" {
+		return EmptyRoutingKeys
 	}
 
 	if contentType == "" { contentType = "text/plain" }
 	err := rabbit.Channel.Publish(
 		rabbit.ExchangeName,
-		rabbit.RoutingKey,
+		rabbit.RoutingKeys,
 		false,
 		false,
 		amqp.Publishing {
@@ -157,18 +164,18 @@ func (rabbit *RabbitMQ) publish (contentType string) error {
 			Body:			[]byte(rabbit.Body),
 		})
 	if err != nil{
-		return err
+		return PublishError
 	}
 	log.Printf(" [x] sent %s", rabbit.Body)
-	return nil
+	return Default
 }
 
-func (rabbit *RabbitMQ) register(consumerName string, callback func(msg []byte)) error {
+func (rabbit *RabbitMQ) register(consumerName string, callback func(msg []byte)) RabbitError {
 	if rabbit.Channel == nil {
-		//todo check for empty channel!
+		return EmptyChannel
 	}
 	if rabbit.Queue == nil {
-		//todo check for empty queue!
+		return EmptyQueue
 	}
 
 	var messages <- chan amqp.Delivery
@@ -183,10 +190,10 @@ func (rabbit *RabbitMQ) register(consumerName string, callback func(msg []byte))
 		nil,
 	)
 	if err != nil {
-		return err
+		return RegistryError
 	}
 	rabbit.listen(messages, callback)
-	return nil
+	return Default
 }
 
 //todo if necessary, this function should return byte[] in order for Consumer to process the body message further
