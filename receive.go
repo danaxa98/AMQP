@@ -1,69 +1,24 @@
 package main
 
-import (
-	"github.com/streadway/amqp"
-	"log"
-	"os"
-)
-
-func failOnError(err error, msg string) {
-	if err != nil {
-		log.Fatalf("%s: %s", msg, err)
-	}
-}
-
 func main() {
-	conn, err := amqp.Dial("amqp://guest:guest@localhost:5672/")
-	failOnError(err, "Failed to connect to RabbitMQ")
-	defer conn.Close()
+	consumer := consumer {}
+	consumer.useRabbitMQ(RabbitMQ{})
+	if err := consumer.rabbitMQ.dial("amqp://guest:guest@localhost:5672/"); err != nil {
 
-	ch, err := conn.Channel()
-	failOnError(err, "Failed to open a channel")
-	defer ch.Close()
-
-	err = ch.ExchangeDeclare(
-		"logs_topic",
-		"topic",
-		true,
-		false,
-		false,
-		false,
-		nil,
-	)
-	failOnError(err, "Failed to declare an exchange")
-
-	q, err := ch.QueueDeclare(
-		"",
-		false,
-		false,
-		true,
-		false,
-		nil,
-	)
-	failOnError(err, "Failed to declare a queue")
-
-	if len(os.Args) < 2 {
-		log.Printf("Usage: %s [binding_key]...", os.Args[0])
-		os.Exit(0)
 	}
+	if err := consumer.rabbitMQ.openChannel(); err != nil {
 
-	for _, s := range os.Args[1:] {
-		log.Printf("Binding queue %s to exchange %s with routing key %s",
-			q.Name, "logs_topic", s)
-
-		err = ch.QueueBind(
-			q.Name,       // queue Name
-			s,            // routing key
-			"logs_topic",
-			false,
-			nil,
-		)
-		failOnError(err, "Failed to bind a queue")
 	}
+	if err := consumer.rabbitMQ.declareExchange("logs_topics","topic"); err != nil {
 
-	c := consumer{
-		Name: "Consumer 1",
 	}
-	c.register(ch, q)
+	if err := consumer.rabbitMQ.declareQueue("test"); err != nil {
+
+	}
+	consumer.rabbitMQ.getRoutingKeyConsumer()
+	if err := consumer.rabbitMQ.queueBind(); err != nil {
+
+	}
+	consumer.register()
 }
 
