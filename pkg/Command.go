@@ -1,7 +1,6 @@
-package main
+package pkg
 
 import (
-	"Loopline/pkg"
 	"fmt"
 	"github.com/spf13/cobra"
 	"os"
@@ -14,25 +13,25 @@ var RootCommand = &cobra.Command{
 	Hidden:		false,
 	Args:		cobra.PositionalArgs(cobra.ExactArgs(0)),
 	Run: 		func(cmd *cobra.Command, args []string){
-		consumer := pkg.Consumer{}
-		consumer.UseRabbitMQ(pkg.RabbitMQ{})
-		if err := consumer.RabbitMQ.Dial("amqp://guest:guest@localhost:5672/"); err != pkg.Default {
+		consumer := Consumer{}
+		consumer.UseRabbitMQ(RabbitMQ{})
+		if err := consumer.RabbitMQ.Dial("amqp://guest:guest@localhost:5672/"); err != Default {
 			panic(err)
 		}
-		if err := consumer.RabbitMQ.OpenChannel(); err != pkg.Default {
+		if err := consumer.RabbitMQ.OpenChannel(); err != Default {
 			panic(err)
 		}
-		if err := consumer.RabbitMQ.DeclareExchange("logs_topics","topic"); err != pkg.Default {
+		if err := consumer.RabbitMQ.DeclareExchange("logs_topics","topic"); err != Default {
 			panic(err)
 		}
-		if err := consumer.RabbitMQ.DeclareQueue("test"); err != pkg.Default {
+		if err := consumer.RabbitMQ.DeclareQueue("test"); err != Default {
 			panic(err)
 		}
-		if err := consumer.RabbitMQ.SetRoutingKeyConsumer("hello.*"); err != pkg.Default {
+		if err := consumer.RabbitMQ.SetRoutingKeyConsumer("hello.*"); err != Default {
 			panic(err)
 		}
 
-		if err := consumer.RabbitMQ.QueueBind(); err != pkg.Default {
+		if err := consumer.RabbitMQ.QueueBind(); err != Default {
 			panic(err)
 		}
 		consumer.Register()
@@ -47,14 +46,14 @@ func Execute() {
 }
 
 func init() {
-	RootCommand.AddCommand(
-		Dial,
-		OpenChannel,
-		DeclareExchange,
-		DeclareQueue,
-		SetRoutingKey,
-		QueueBind,
-		Register)
+	//RootCommand.AddCommand(
+	//	Dial,
+	//	OpenChannel,
+	//	DeclareExchange,
+	//	DeclareQueue,
+	//	SetRoutingKey,
+	//	QueueBind,
+	//	Register)
 }
 
 var Dial = &cobra.Command{
