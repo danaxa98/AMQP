@@ -12,10 +12,9 @@ func (consumer Consumer) UseRabbitMQ(r RabbitMQ) {
 }
 
 func (consumer Consumer) Register() {
-	//todo check for non-initialized field!
 	consumer.RabbitMQ.register(consumer.Name, consumer.handle)
 }
 
 func (consumer Consumer) handle (msg []byte) {
-	fmt.Print("MESSAGE", string(msg))
+	fmt.Printf("Message \"%s\" is received.\n", string(msg))
 }

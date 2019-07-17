@@ -105,12 +105,12 @@ func (rabbit *RabbitMQ) GetRoutingKeyPublisher (args []string) {
 	rabbit.RoutingKeys = s
 }
 
-func (rabbit *RabbitMQ) GetRoutingKeyConsumer() {
+func (rabbit *RabbitMQ) SetRoutingKeyConsumer(key string) RabbitError{
 	//if rabbit.Queue == nil {
-	//	//	//todo check for empty queue
+	//
 	//	//}
 	//	//if rabbit.ExchangeName == "" {
-	//	//	//todo check for empty exchange!
+	//
 	//	//}
 	//	//
 	//	//if len(args) < 2 {
@@ -125,7 +125,11 @@ func (rabbit *RabbitMQ) GetRoutingKeyConsumer() {
 	//	//		rabbit.Queue.Name, rabbit.ExchangeName, s)
 	//	//	rabbit.queueBind()
 	//	//}
-	rabbit.RoutingKeys = "hello.world"
+	if key == "" {
+		return EmptyRoutingKeys
+	}
+	rabbit.RoutingKeys = key
+	return Default
 }
 
 func (rabbit *RabbitMQ) getBody (args []string) {
@@ -196,7 +200,6 @@ func (rabbit *RabbitMQ) register(consumerName string, callback func(msg []byte))
 	return Default
 }
 
-//todo if necessary, this function should return byte[] in order for Consumer to process the body message further
 func (rabbit *RabbitMQ) listen (messages <- chan amqp.Delivery, callback func(msg []byte)) {
 	forever := make(chan bool)
 
