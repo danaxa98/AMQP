@@ -2,7 +2,6 @@ package main
 
 import (
 	"Loopline/pkg"
-	"github.com/gin-gonic/gin"
 )
 
 func main() {
