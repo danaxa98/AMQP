@@ -1,20 +1,49 @@
-package pkg
+package main
 
 import (
+	"Loopline/pkg"
 	"fmt"
 	"github.com/spf13/cobra"
 	"os"
 )
 
+
 var RootCommand = &cobra.Command{
-	Use:		"-dan",
+	Use:		"-listen",
 	Version:	"1.0",
 	Hidden:		false,
-	Short:		"Meow",
-	Long:		"Woof",
-	Run: 		func(cmd *cobra.Command, args []string) {
-		// Do Stuff Here
+	Args:		cobra.PositionalArgs(cobra.ExactArgs(0)),
+	Run: 		func(cmd *cobra.Command, args []string){
+		consumer := pkg.Consumer{}
+		consumer.UseRabbitMQ(pkg.RabbitMQ{})
+		if err := consumer.RabbitMQ.Dial("amqp://guest:guest@localhost:5672/"); err != pkg.Default {
+			panic(err)
+		}
+		if err := consumer.RabbitMQ.OpenChannel(); err != pkg.Default {
+			panic(err)
+		}
+		if err := consumer.RabbitMQ.DeclareExchange("logs_topics","topic"); err != pkg.Default {
+			panic(err)
+		}
+		if err := consumer.RabbitMQ.DeclareQueue("test"); err != pkg.Default {
+			panic(err)
+		}
+		if err := consumer.RabbitMQ.SetRoutingKeyConsumer("hello.*"); err != pkg.Default {
+			panic(err)
+		}
+
+		if err := consumer.RabbitMQ.QueueBind(); err != pkg.Default {
+			panic(err)
+		}
+		consumer.Register()
 	},
+}
+
+func Execute() {
+	if err := RootCommand.Execute(); err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
 }
 
 func init() {
@@ -26,13 +55,6 @@ func init() {
 		SetRoutingKey,
 		QueueBind,
 		Register)
-}
-
-func Execute() {
-	if err := RootCommand.Execute(); err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
 }
 
 var Dial = &cobra.Command{
