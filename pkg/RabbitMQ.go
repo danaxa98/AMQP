@@ -6,13 +6,12 @@ import (
 	"strings"
 )
 
-//A wrapper for RabbitMQ
+//Wrapper class for RabbitMQ
 type RabbitMQ struct {
 	Connection   *amqp.Connection
 	Channel      *amqp.Channel
 	Queue        *amqp.Queue
 	ExchangeName string
-	RoutingKeys  string
 	Body         string
 }
 
@@ -70,20 +69,17 @@ func (rabbit *RabbitMQ) DeclareQueue(queueName string) RabbitError {
 	return Default
 }
 
-func (rabbit *RabbitMQ) QueueBind() RabbitError {
+func (rabbit *RabbitMQ) QueueBind(routingKey string) RabbitError {
 	if rabbit.Queue == nil {
 		return EmptyQueue
 	}
 	if rabbit.ExchangeName == "" {
 		return EmptyExchange
 	}
-	if rabbit.RoutingKeys == "" {
-		return EmptyRoutingKeys
-	}
 
 		err := rabbit.Channel.QueueBind(
 			rabbit.Queue.Name,  // queue Name
-			rabbit.RoutingKeys, // routing key
+			routingKey, // routing key
 			"logs_topics",
 			false,
 			nil,
@@ -92,44 +88,6 @@ func (rabbit *RabbitMQ) QueueBind() RabbitError {
 			return BindQueueError
 		}
 		return Default
-}
-
-func (rabbit *RabbitMQ) GetRoutingKeyPublisher (args []string) {
-	var s string
-	if (len(args) < 2) || args[1] == "" {
-		s = "anonymous.info"
-		//todo check for invalid syntax!
-	} else {
-		s = args[1]
-	}
-	rabbit.RoutingKeys = s
-}
-
-func (rabbit *RabbitMQ) SetRoutingKeyConsumer(key string) RabbitError{
-	//if rabbit.Queue == nil {
-	//
-	//	//}
-	//	//if rabbit.ExchangeName == "" {
-	//
-	//	//}
-	//	//
-	//	//if len(args) < 2 {
-	//	//	log.Printf("Usage: %s [binding_key]...", args[0])
-	//	//	os.Exit(0)
-	//	//}
-	//	//
-	//	//log.Println(args)
-	//	//for _, s := range args[:1] {
-	//	//	rabbit.RoutingKeys = s
-	//	//	log.Printf("Binding queue %s to exchange %s with routing key %s",
-	//	//		rabbit.Queue.Name, rabbit.ExchangeName, s)
-	//	//	rabbit.queueBind()
-	//	//}
-	if key == "" {
-		return EmptyRoutingKeys
-	}
-	rabbit.RoutingKeys = key
-	return Default
 }
 
 func (rabbit *RabbitMQ) getBody (args []string) {
@@ -143,38 +101,8 @@ func (rabbit *RabbitMQ) getBody (args []string) {
 	rabbit.Body = s
 }
 
-func (rabbit *RabbitMQ) publish (contentType string) RabbitError {
-	if rabbit.Channel == nil {
-		return EmptyChannel
-	}
-	if rabbit.ExchangeName == "" {
-		return EmptyExchange
-	}
-	if rabbit.Body == "" {
-		return EmptyBody
-	}
-	if rabbit.RoutingKeys == "" {
-		return EmptyRoutingKeys
-	}
-
-	if contentType == "" { contentType = "text/plain" }
-	err := rabbit.Channel.Publish(
-		rabbit.ExchangeName,
-		rabbit.RoutingKeys,
-		false,
-		false,
-		amqp.Publishing {
-			ContentType: 	contentType,
-			Body:			[]byte(rabbit.Body),
-		})
-	if err != nil{
-		return PublishError
-	}
-	log.Printf(" [x] sent %s", rabbit.Body)
-	return Default
-}
-
-func (rabbit *RabbitMQ) register(consumerName string, callback func(msg []byte)) RabbitError {
+func (rabbit *RabbitMQ) Register(routingKey string, consumerName string, callback func(msg []byte)) RabbitError {
+	rabbit.QueueBind(routingKey)
 	if rabbit.Channel == nil {
 		return EmptyChannel
 	}
