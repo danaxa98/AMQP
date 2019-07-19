@@ -42,8 +42,9 @@ var Listen = &cobra.Command{
 			}
 		}
 
+
+
 		var rabbit = RabbitMQ{}
-		consumer := Consumer{}
 		if err := rabbit.Dial(viper.GetString("port")); err != Default {
 			panic(err)
 		}
@@ -56,6 +57,22 @@ var Listen = &cobra.Command{
 		if err := rabbit.DeclareQueue(viper.GetString("queue_name")); err != Default {
 			panic(err)
 		}
-		rabbit.Register(viper.GetString("consumer.routing_key"), viper.GetString("consumer.name"), consumer.handle)
+
+
+
+		consumerMap := viper.Get("consumer").([]interface{})
+		for _, v := range consumerMap {
+			eachConsumerMap := v.(map[interface{}]interface{})
+			for k, v := range eachConsumerMap {
+				consumer := Consumer{}
+				rabbit.Register(k.(string), v.(string), consumer.handle)
+			}
+		}
+
+		forever := make(chan bool)
+
+		log.Printf(" [*] Waiting for messages. To exit press CTRL+C")
+		<- forever
+		//todo bug: * and # not working for routing keys!
 	},
 }

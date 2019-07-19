@@ -4,6 +4,8 @@ exchange:
   type: "direct"
 queue_name: "test_queue"
 consumer:
-    name: ""
-    routing_key: "hello.world"
+  - testConsumer1 : "hello.world"
+  - testConsumer2 : "hello.christmas"
+  - testConsumer3 : "white.christmas"
+  - testConsumer4 : "#"
 ...

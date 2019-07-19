@@ -101,7 +101,7 @@ func (rabbit *RabbitMQ) getBody (args []string) {
 	rabbit.Body = s
 }
 
-func (rabbit *RabbitMQ) Register(routingKey string, consumerName string, callback func(msg []byte)) RabbitError {
+func (rabbit *RabbitMQ) Register(consumerName string, routingKey string, callback func(msg []byte)) RabbitError {
 	rabbit.QueueBind(routingKey)
 	if rabbit.Channel == nil {
 		return EmptyChannel
@@ -124,12 +124,13 @@ func (rabbit *RabbitMQ) Register(routingKey string, consumerName string, callbac
 	if err != nil {
 		return RegistryError
 	}
+	log.Printf("Consumer %s successfully registered with routing key %s.", consumerName, routingKey)
 	rabbit.listen(messages, callback)
 	return Default
 }
 
 func (rabbit *RabbitMQ) listen (messages <- chan amqp.Delivery, callback func(msg []byte)) {
-	forever := make(chan bool)
+
 
 	go func() {
 		for msg := range messages {
@@ -137,7 +138,4 @@ func (rabbit *RabbitMQ) listen (messages <- chan amqp.Delivery, callback func(ms
 
 		}
 	}()
-
-	log.Printf(" [*] Waiting for messages. To exit press CTRL+C")
-	<- forever
 }
