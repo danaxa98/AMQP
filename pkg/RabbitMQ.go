@@ -80,7 +80,7 @@ func (rabbit *RabbitMQ) QueueBind(routingKey string) RabbitError {
 		err := rabbit.Channel.QueueBind(
 			rabbit.Queue.Name,  // queue Name
 			routingKey, // routing key
-			"logs_topics",
+			rabbit.ExchangeName,
 			false,
 			nil,
 		)

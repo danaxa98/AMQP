@@ -1,10 +1,9 @@
--
-  port: "amqp://guest:guest@localhost:5672/"
-  exchange:
-    name: "test_exchange"
-    type: "direct"
-  queue: "test_queue"
-  consumer:
+port: "amqp://guest:guest@localhost:5672/"
+exchange:
+  name: "test_exchange"
+  type: "direct"
+queue_name: "test_queue"
+consumer:
     name: ""
     routing_key: "hello.world"
 ...

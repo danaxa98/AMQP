@@ -1,6 +1,7 @@
 package pkg
 
 import (
+	"fmt"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"log"
@@ -28,10 +29,10 @@ var Listen = &cobra.Command{
 	Short:		"Listen for message",
 	Args:		cobra.PositionalArgs(cobra.ExactArgs(0)),
 	Run:		func(cmd *cobra.Command, args[] string) {
-		viper.SetConfigFile("config")
 		viper.SetConfigType("yaml")
 		viper.AddConfigPath("..")
 		if err := viper.ReadInConfig(); err != nil { // Handle errors reading the config file
+			fmt.Println(err)
 			if _, ok := err.(viper.ConfigFileNotFoundError); ok {
 				err := RabbitError(NoConfigFileError)
 				panic(err)
@@ -53,9 +54,9 @@ var Listen = &cobra.Command{
 		if err := rabbit.DeclareExchange(viper.GetString("exchange.name"),viper.GetString("exchange.type")); err != Default {
 			panic(err)
 		}
-		if err := rabbit.DeclareQueue(args[1]); err != Default {
+		if err := rabbit.DeclareQueue(viper.GetString("queue_name")); err != Default {
 			panic(err)
 		}
-		rabbit.Register(viper.GetString("consumer.routing_key"), "consumer.name", consumer.handle)
+		rabbit.Register(viper.GetString("consumer.routing_key"), viper.GetString("consumer.name"), consumer.handle)
 	},
 }
