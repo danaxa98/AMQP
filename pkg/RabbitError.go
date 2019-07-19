@@ -3,6 +3,8 @@ package pkg
 type RabbitError string
 
 const(
+	NoConfigFileError		RabbitError = "Unable to locate configuration file!"
+	ConfigError				RabbitError = "Unable to configure files!"
 	ConnectServerError  	RabbitError = "Unable to connect to RabbitMQ server!"
 	OpenChannelError    	RabbitError = "Unable to open a channel!"
 	DeclareExchangeError	RabbitError = "Unable to declare an exchange!"

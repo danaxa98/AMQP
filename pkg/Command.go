@@ -3,6 +3,7 @@ package pkg
 import (
 	"fmt"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 	"os"
 )
 
@@ -27,6 +28,20 @@ var Listen = &cobra.Command{
 	Short:		"Listen for message",
 	Args:		cobra.PositionalArgs(cobra.ExactArgs(2)),
 	Run:		func(cmd *cobra.Command, args[] string) {
+		viper.SetConfigFile("config")
+		viper.SetConfigType("yaml")
+		viper.AddConfigPath("/loopline/")
+
+		if err := viper.ReadInConfig(); err != nil { // Handle errors reading the config file
+			if _, ok := err.(viper.ConfigFileNotFoundError); ok {
+				err := RabbitError(NoConfigFileError)
+				panic(err)
+			} else {
+				err := RabbitError(ConfigError)
+				panic(err)
+			}
+
+		}
 
 		var rabbit = RabbitMQ{}
 		consumer := Consumer{}
