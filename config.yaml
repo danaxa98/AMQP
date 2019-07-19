@@ -4,5 +4,7 @@
     name: "test_exchange"
     type: "direct"
   queue: "test_queue"
-  routing_key: "hello.world"
+  consumer:
+    name: ""
+    routing_key: "hello.world"
 ...

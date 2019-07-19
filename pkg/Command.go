@@ -1,9 +1,9 @@
 package pkg
 
 import (
-	"fmt"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"log"
 	"os"
 )
 
@@ -14,7 +14,7 @@ var RootCommand = &cobra.Command{
 
 func Execute() {
 	if err := RootCommand.Execute(); err != nil {
-		fmt.Println(err)
+		log.Println(err)
 		os.Exit(1)
 	}
 }
@@ -26,12 +26,11 @@ func init() {
 var Listen = &cobra.Command{
 	Use:		"listen",
 	Short:		"Listen for message",
-	Args:		cobra.PositionalArgs(cobra.ExactArgs(2)),
+	Args:		cobra.PositionalArgs(cobra.ExactArgs(0)),
 	Run:		func(cmd *cobra.Command, args[] string) {
 		viper.SetConfigFile("config")
 		viper.SetConfigType("yaml")
-		viper.AddConfigPath("/loopline/")
-
+		viper.AddConfigPath("..")
 		if err := viper.ReadInConfig(); err != nil { // Handle errors reading the config file
 			if _, ok := err.(viper.ConfigFileNotFoundError); ok {
 				err := RabbitError(NoConfigFileError)
@@ -45,18 +44,18 @@ var Listen = &cobra.Command{
 
 		var rabbit = RabbitMQ{}
 		consumer := Consumer{}
-		if err := rabbit.Dial("amqp://guest:guest@localhost:5672/"); err != Default {
+		if err := rabbit.Dial(viper.GetString("port")); err != Default {
 			panic(err)
 		}
 		if err := rabbit.OpenChannel(); err != Default {
 			panic(err)
 		}
-		if err := rabbit.DeclareExchange(args[0],"topic"); err != Default {
+		if err := rabbit.DeclareExchange(viper.GetString("exchange.name"),viper.GetString("exchange.type")); err != Default {
 			panic(err)
 		}
 		if err := rabbit.DeclareQueue(args[1]); err != Default {
 			panic(err)
 		}
-		rabbit.Register("hello.world", "", consumer.handle)
+		rabbit.Register(viper.GetString("consumer.routing_key"), "consumer.name", consumer.handle)
 	},
 }
