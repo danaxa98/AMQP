@@ -40,7 +40,6 @@ var Listen = &cobra.Command{
 				err := RabbitError(ConfigError)
 				panic(err)
 			}
-
 		}
 
 		var rabbit = RabbitMQ{}
