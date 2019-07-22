@@ -1,12 +1,14 @@
 package pkg
 
 import (
-	"fmt"
+	_"database/sql"
+	_"github.com/mattn/go-sqlite3"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"log"
 	"os"
 	"strings"
+	_"time"
 )
 
 
@@ -23,6 +25,12 @@ func Execute() {
 
 func init() {
 	RootCommand.AddCommand(Listen)
+	//
+	//db, err := sql.Open("sqlite3", "./foo.db")
+	//CheckError(err)
+	//defer db.Close()
+	//
+	//tx, err := db.Begin()
 }
 
 var Listen = &cobra.Command{
@@ -33,32 +41,14 @@ var Listen = &cobra.Command{
 	//Configures yaml file
 		viper.SetConfigType("yaml")
 		viper.AddConfigPath("..")
-		if err := viper.ReadInConfig(); err != nil { // Handle errors reading the config file
-			fmt.Println(err)
-			if _, ok := err.(viper.ConfigFileNotFoundError); ok {
-				err := RabbitError(NoConfigFileError)
-				panic(err)
-			} else {
-				err := RabbitError(ConfigError)
-				panic(err)
-			}
-		}
-
-
+		err := viper.ReadInConfig()
+		CheckError(err)
 
 		var rabbit = RabbitMQ{}
-		if err := rabbit.Dial(viper.GetString("port")); err != Default {
-			panic(err)
-		}
-		if err := rabbit.OpenChannel(); err != Default {
-			panic(err)
-		}
-		if err := rabbit.DeclareExchange(viper.GetString("exchange.name"),viper.GetString("exchange.type")); err != Default {
-			panic(err)
-		}
-		if err := rabbit.DeclareQueue(viper.GetString("queue_name")); err != Default {
-			panic(err)
-		}
+		CheckError(rabbit.Dial(viper.GetString("port")))
+		CheckError(rabbit.OpenChannel())
+		CheckError(rabbit.DeclareExchange(viper.GetString("exchange.name"),viper.GetString("exchange.type")))
+		CheckError(rabbit.DeclareQueue(viper.GetString("queue_name")))
 
 
 		//Read configuration of consumers
@@ -78,4 +68,10 @@ var Listen = &cobra.Command{
 		log.Printf(" [*] Waiting for messages. To exit press CTRL+C")
 		<- forever
 	},
+}
+
+func CheckError(err error) {
+	if err != nil {
+		log.Fatal(err)
+	}
 }

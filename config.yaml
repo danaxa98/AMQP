@@ -4,6 +4,7 @@ exchange:
   type: "direct"
 queue_name: "test_queue"
 consumer:
+  # Consumer name : Consumer routing keys
   - Consumer1 : "hello.world"
   - Consumer2 : "merry.christmas"
   - Consumer3 : "loopline.systems happy.sad"

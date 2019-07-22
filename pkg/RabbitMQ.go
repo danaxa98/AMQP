@@ -16,27 +16,19 @@ type RabbitMQ struct {
 	Body         string
 }
 
-func (rabbit *RabbitMQ) Dial(url string) RabbitError {
+func (rabbit *RabbitMQ) Dial(url string) error {
 	var err error
 	rabbit.Connection, err = amqp.Dial(url)
-	if err != nil {
-		defer rabbit.Connection.Close()
-		return ConnectServerError
-	}
-	return Default
+	return err
 }
 
-func (rabbit *RabbitMQ) OpenChannel() RabbitError {
+func (rabbit *RabbitMQ) OpenChannel() error {
 	var err error
 	rabbit.Channel, err = rabbit.Connection.Channel()
-	if err != nil {
-		defer rabbit.Channel.Close()
-		return OpenChannelError
-	}
-	return Default
+	return err
 }
 
-func (rabbit *RabbitMQ) DeclareExchange(exchangeName string, kind string) RabbitError {
+func (rabbit *RabbitMQ) DeclareExchange(exchangeName string, kind string) error {
 	err := rabbit.Channel.ExchangeDeclare(
 		exchangeName,
 		kind,
@@ -46,14 +38,11 @@ func (rabbit *RabbitMQ) DeclareExchange(exchangeName string, kind string) Rabbit
 		false,
 		nil,
 	)
-	if err != nil {
-		return DeclareExchangeError
-	}
 	rabbit.ExchangeName = exchangeName
-	return Default
+	return err
 }
 
-func (rabbit *RabbitMQ) DeclareQueue(queueName string) RabbitError {
+func (rabbit *RabbitMQ) DeclareQueue(queueName string) error {
 
 	temp, err := rabbit.Channel.QueueDeclare(
 		queueName,
@@ -63,54 +52,29 @@ func (rabbit *RabbitMQ) DeclareQueue(queueName string) RabbitError {
 		false,
 		nil,
 	)
-	if err != nil {
-		return DeclareQueueError
-	}
+
 	rabbit.Queue = &temp
-	return Default
+	return err
 }
 
-func (rabbit *RabbitMQ) QueueBind(routingKey []string) RabbitError {
-	if rabbit.Queue == nil {
-		return EmptyQueue
-	}
-	if rabbit.ExchangeName == "" {
-		return EmptyExchange
-	}
+func (rabbit *RabbitMQ) QueueBind(routingKey []string) error {
 
+	var err error
 	for _, key := range routingKey {
-		err := rabbit.Channel.QueueBind(
+		err = rabbit.Channel.QueueBind(
 			rabbit.Queue.Name,  // queue Name
 			key, // routing key
 			rabbit.ExchangeName,
 			false,
 			nil,
 		)
-		if err != nil {
-			return BindQueueError
-		}
 	}
-		return Default
+	return err
 }
 
-func (rabbit *RabbitMQ) getBody (args []string) {
-	var s string
-	if len(args) < 3 || args[2] == "" {
-		s = "Hello"
-	} else {
-		s = strings.Join(args[2:], " ")
-	}
-
-	rabbit.Body = s
-}
-
-func (rabbit *RabbitMQ) Register(callback func(msg []byte), consumerName string, routingKey []string) RabbitError {
-	rabbit.QueueBind(routingKey)
-	if rabbit.Channel == nil {
-		return EmptyChannel
-	}
-	if rabbit.Queue == nil {
-		return EmptyQueue
+func (rabbit *RabbitMQ) Register(callback func(msg []byte), consumerName string, routingKeys []string) error {
+	if err := rabbit.QueueBind(routingKeys); err != nil {
+		return err
 	}
 
 	var messages <- chan amqp.Delivery
@@ -124,19 +88,17 @@ func (rabbit *RabbitMQ) Register(callback func(msg []byte), consumerName string,
 		false,
 		nil,
 	)
-	if err != nil {
-		return RegistryError
-	}
 
 	//Parsing debugging message
-	for index := range routingKey {
-		routingKey[index] = strconv.Quote(routingKey[index])
+	for index := range routingKeys {
+		routingKeys[index] = strconv.Quote(routingKeys[index])
 	}
-	routingKeysString := strings.Join(routingKey, ", ")
+	routingKeysString := strings.Join(routingKeys, ", ")
 
 	log.Printf("Consumer %s successfully registered with routing key %v.", strconv.Quote(consumerName), routingKeysString)
 	rabbit.listen(messages, callback)
-	return Default
+
+	return err
 }
 
 func (rabbit *RabbitMQ) listen (messages <- chan amqp.Delivery, callback func(msg []byte)) {
