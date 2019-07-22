@@ -103,7 +103,6 @@ func (rabbit *RabbitMQ) Register(callback func(msg []byte), consumerName string,
 
 func (rabbit *RabbitMQ) listen (messages <- chan amqp.Delivery, callback func(msg []byte)) {
 
-
 	go func() {
 		for msg := range messages {
 			callback(msg.Body)

@@ -1,14 +1,13 @@
 package pkg
 
 import (
-	_"database/sql"
+	"database/sql"
 	_"github.com/mattn/go-sqlite3"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"log"
 	"os"
 	"strings"
-	_"time"
 )
 
 
@@ -25,12 +24,6 @@ func Execute() {
 
 func init() {
 	RootCommand.AddCommand(Listen)
-	//
-	//db, err := sql.Open("sqlite3", "./foo.db")
-	//CheckError(err)
-	//defer db.Close()
-	//
-	//tx, err := db.Begin()
 }
 
 var Listen = &cobra.Command{
@@ -42,13 +35,19 @@ var Listen = &cobra.Command{
 		viper.SetConfigType("yaml")
 		viper.AddConfigPath("..")
 		err := viper.ReadInConfig()
-		CheckError(err)
+		checkError(err)
+
+
+		db, err := sql.Open("sqlite3", "amqp")
+		checkError(err)
+
+		defer db.Close()
 
 		var rabbit = RabbitMQ{}
-		CheckError(rabbit.Dial(viper.GetString("port")))
-		CheckError(rabbit.OpenChannel())
-		CheckError(rabbit.DeclareExchange(viper.GetString("exchange.name"),viper.GetString("exchange.type")))
-		CheckError(rabbit.DeclareQueue(viper.GetString("queue_name")))
+		checkError(rabbit.Dial(viper.GetString("port")))
+		checkError(rabbit.OpenChannel())
+		checkError(rabbit.DeclareExchange(viper.GetString("exchange.name"),viper.GetString("exchange.type")))
+		checkError(rabbit.DeclareQueue(viper.GetString("queue_name")))
 
 
 		//Read configuration of consumers
@@ -59,7 +58,8 @@ var Listen = &cobra.Command{
 				consumer := Consumer{}
 				consumerName := k.(string)
 				consumerRoutingKeys := strings.Fields(v.(string))
-				rabbit.Register(consumer.handle, consumerName, consumerRoutingKeys)
+				err := rabbit.Register(consumer.handle, consumerName, consumerRoutingKeys)
+				checkError(err)
 			}
 		}
 
@@ -70,7 +70,7 @@ var Listen = &cobra.Command{
 	},
 }
 
-func CheckError(err error) {
+func checkError(err error) {
 	if err != nil {
 		log.Fatal(err)
 	}
