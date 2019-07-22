@@ -31,6 +31,7 @@ var Listen = &cobra.Command{
 	Short:		"Listen for message",
 	Args:		cobra.PositionalArgs(cobra.ExactArgs(0)),
 	Run:		func(cmd *cobra.Command, args[] string) {
+
 	//Configures yaml file
 		viper.SetConfigType("yaml")
 		viper.AddConfigPath("..")
@@ -38,7 +39,7 @@ var Listen = &cobra.Command{
 		checkError(err)
 
 
-		db, err := sql.Open("sqlite3", "amqp")
+		db, err := sql.Open("sqlite3", "../amqp")
 		checkError(err)
 
 		defer db.Close()
@@ -58,10 +59,23 @@ var Listen = &cobra.Command{
 				consumer := Consumer{}
 				consumerName := k.(string)
 				consumerRoutingKeys := strings.Fields(v.(string))
-				err := rabbit.Register(consumer.handle, consumerName, consumerRoutingKeys)
-				checkError(err)
+				registerError := rabbit.Register(consumer.handle, consumerName, consumerRoutingKeys)
+				checkError(registerError)
 			}
 		}
+
+		//debugging variable
+		var message = "example"
+
+		tx, err := db.Begin()
+		checkError(err)
+
+		_, err = tx.Exec("INSERT INTO amqp(message) VALUES(?)", message)
+		if err != nil {
+			tx.Rollback()
+			log.Fatal(err)
+		}
+		checkError(tx.Commit())
 
 		forever := make(chan bool)
 
