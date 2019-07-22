@@ -6,6 +6,7 @@ import (
 	"github.com/spf13/viper"
 	"log"
 	"os"
+	"strings"
 )
 
 
@@ -29,6 +30,7 @@ var Listen = &cobra.Command{
 	Short:		"Listen for message",
 	Args:		cobra.PositionalArgs(cobra.ExactArgs(0)),
 	Run:		func(cmd *cobra.Command, args[] string) {
+	//Configures yaml file
 		viper.SetConfigType("yaml")
 		viper.AddConfigPath("..")
 		if err := viper.ReadInConfig(); err != nil { // Handle errors reading the config file
@@ -59,13 +61,15 @@ var Listen = &cobra.Command{
 		}
 
 
-
+		//Read configuration of consumers
 		consumerMap := viper.Get("consumer").([]interface{})
 		for _, v := range consumerMap {
 			eachConsumerMap := v.(map[interface{}]interface{})
 			for k, v := range eachConsumerMap {
 				consumer := Consumer{}
-				rabbit.Register(k.(string), v.(string), consumer.handle)
+				consumerName := k.(string)
+				consumerRoutingKeys := strings.Fields(v.(string))
+				rabbit.Register(consumer.handle, consumerName, consumerRoutingKeys)
 			}
 		}
 
@@ -73,6 +77,5 @@ var Listen = &cobra.Command{
 
 		log.Printf(" [*] Waiting for messages. To exit press CTRL+C")
 		<- forever
-		//todo bug: * and # not working for routing keys!
 	},
 }

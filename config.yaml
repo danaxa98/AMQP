@@ -4,8 +4,7 @@ exchange:
   type: "direct"
 queue_name: "test_queue"
 consumer:
-  - testConsumer1 : "hello.world"
-  - testConsumer2 : "hello.christmas"
-  - testConsumer3 : "white.christmas"
-  - testConsumer4 : "#"
+  - Consumer1 : "hello.world"
+  - Consumer2 : "merry.christmas"
+  - Consumer3 : "loopline.systems happy.sad"
 ...

@@ -3,6 +3,7 @@ package pkg
 import (
 	"github.com/streadway/amqp"
 	"log"
+	"strconv"
 	"strings"
 )
 
@@ -69,7 +70,7 @@ func (rabbit *RabbitMQ) DeclareQueue(queueName string) RabbitError {
 	return Default
 }
 
-func (rabbit *RabbitMQ) QueueBind(routingKey string) RabbitError {
+func (rabbit *RabbitMQ) QueueBind(routingKey []string) RabbitError {
 	if rabbit.Queue == nil {
 		return EmptyQueue
 	}
@@ -77,9 +78,10 @@ func (rabbit *RabbitMQ) QueueBind(routingKey string) RabbitError {
 		return EmptyExchange
 	}
 
+	for _, key := range routingKey {
 		err := rabbit.Channel.QueueBind(
 			rabbit.Queue.Name,  // queue Name
-			routingKey, // routing key
+			key, // routing key
 			rabbit.ExchangeName,
 			false,
 			nil,
@@ -87,6 +89,7 @@ func (rabbit *RabbitMQ) QueueBind(routingKey string) RabbitError {
 		if err != nil {
 			return BindQueueError
 		}
+	}
 		return Default
 }
 
@@ -101,7 +104,7 @@ func (rabbit *RabbitMQ) getBody (args []string) {
 	rabbit.Body = s
 }
 
-func (rabbit *RabbitMQ) Register(consumerName string, routingKey string, callback func(msg []byte)) RabbitError {
+func (rabbit *RabbitMQ) Register(callback func(msg []byte), consumerName string, routingKey []string) RabbitError {
 	rabbit.QueueBind(routingKey)
 	if rabbit.Channel == nil {
 		return EmptyChannel
@@ -124,7 +127,14 @@ func (rabbit *RabbitMQ) Register(consumerName string, routingKey string, callbac
 	if err != nil {
 		return RegistryError
 	}
-	log.Printf("Consumer %s successfully registered with routing key %s.", consumerName, routingKey)
+
+	//Parsing debugging message
+	for index := range routingKey {
+		routingKey[index] = strconv.Quote(routingKey[index])
+	}
+	routingKeysString := strings.Join(routingKey, ", ")
+
+	log.Printf("Consumer %s successfully registered with routing key %v.", strconv.Quote(consumerName), routingKeysString)
 	rabbit.listen(messages, callback)
 	return Default
 }
