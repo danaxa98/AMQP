@@ -59,23 +59,10 @@ var Listen = &cobra.Command{
 				consumer := Consumer{}
 				consumerName := k.(string)
 				consumerRoutingKeys := strings.Fields(v.(string))
-				registerError := rabbit.Register(consumer.handle, consumerName, consumerRoutingKeys)
+				registerError := rabbit.Register(db, consumer.handle, consumerName, consumerRoutingKeys)
 				checkError(registerError)
 			}
 		}
-
-		//debugging variable
-		var message = "example"
-
-		tx, err := db.Begin()
-		checkError(err)
-
-		_, err = tx.Exec("INSERT INTO amqp(message) VALUES(?)", message)
-		if err != nil {
-			tx.Rollback()
-			log.Fatal(err)
-		}
-		checkError(tx.Commit())
 
 		forever := make(chan bool)
 
