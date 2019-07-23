@@ -1,7 +1,6 @@
 package pkg
 
 import (
-	"database/sql"
 	"github.com/streadway/amqp"
 	"log"
 	"strconv"
@@ -13,8 +12,6 @@ type RabbitMQ struct {
 	Connection   *amqp.Connection
 	Channel      *amqp.Channel
 	Queue        *amqp.Queue
-	ExchangeName string
-	Body         string
 }
 
 func (rabbit *RabbitMQ) Dial(url string) error {
@@ -39,7 +36,6 @@ func (rabbit *RabbitMQ) DeclareExchange(exchangeName string, kind string) error 
 		false,
 		nil,
 	)
-	rabbit.ExchangeName = exchangeName
 	return err
 }
 
@@ -58,14 +54,14 @@ func (rabbit *RabbitMQ) DeclareQueue(queueName string) error {
 	return err
 }
 
-func (rabbit *RabbitMQ) QueueBind(routingKey []string) error {
+func (rabbit *RabbitMQ) QueueBind(exchangeName string, routingKey []string) error {
 
 	var err error
 	for _, key := range routingKey {
 		err = rabbit.Channel.QueueBind(
 			rabbit.Queue.Name,  // queue Name
 			key, // routing key
-			rabbit.ExchangeName,
+			exchangeName,
 			false,
 			nil,
 		)
@@ -73,10 +69,10 @@ func (rabbit *RabbitMQ) QueueBind(routingKey []string) error {
 	return err
 }
 
-func (rabbit *RabbitMQ) Register(db *sql.DB, callback func(msg []byte) string, consumerName string, routingKeys []string) error {
+func (rabbit *RabbitMQ) Register(exchangeName string, callback func(msg []byte), consumerName string, routingKeys []string) error {
 	var err error
 
-	if err = rabbit.QueueBind(routingKeys); err != nil {
+	if err = rabbit.QueueBind(exchangeName, routingKeys); err != nil {
 		return err
 	}
 
@@ -101,27 +97,17 @@ func (rabbit *RabbitMQ) Register(db *sql.DB, callback func(msg []byte) string, c
 	}
 	routingKeysString := strings.Join(routingKeys, ", ")
 
-	log.Printf("Consumer %s successfully registered with routing key %v.", strconv.Quote(consumerName), routingKeysString)
-	rabbit.listen(db, messages, callback)
+	log.Printf("Consumer %s successfully registered with routing key(s) %v.", strconv.Quote(consumerName), routingKeysString)
+	rabbit.listen(messages, callback)
 
 	return err
 }
 
-func (rabbit *RabbitMQ) listen (db *sql.DB, messages <- chan amqp.Delivery, callback func(msg []byte) string) {
+func (rabbit *RabbitMQ) listen (messages <- chan amqp.Delivery, callback func(msg []byte)) {
 
 	go func() {
 		for msg := range messages {
-			toBeStoredMessage := callback(msg.Body)
-			tx, err := db.Begin()
-			checkError(err)
-
-			_, err = tx.Exec("INSERT INTO amqp(message) VALUES(?)", toBeStoredMessage)
-			if err != nil {
-				tx.Rollback()
-				log.Fatal(err)
-			}
-			checkError(tx.Commit())
-
+			callback(msg.Body)
 		}
 	}()
 }

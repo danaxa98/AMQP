@@ -32,7 +32,7 @@ var Listen = &cobra.Command{
 	Args:		cobra.PositionalArgs(cobra.ExactArgs(0)),
 	Run:		func(cmd *cobra.Command, args[] string) {
 
-	//Configures yaml file
+	//Add configuration yaml file
 		viper.SetConfigType("yaml")
 		viper.AddConfigPath("..")
 		err := viper.ReadInConfig()
@@ -51,15 +51,17 @@ var Listen = &cobra.Command{
 		checkError(rabbit.DeclareQueue(viper.GetString("queue_name")))
 
 
-		//Read configuration of consumers
+		//Read configuration of consumer names and consumer routing keys from config file 'config.yaml'
 		consumerMap := viper.Get("consumer").([]interface{})
 		for _, v := range consumerMap {
 			eachConsumerMap := v.(map[interface{}]interface{})
 			for k, v := range eachConsumerMap {
-				consumer := Consumer{}
+				consumer := Consumer{rep: repository{
+					db,
+				}}
 				consumerName := k.(string)
 				consumerRoutingKeys := strings.Fields(v.(string))
-				registerError := rabbit.Register(db, consumer.handle, consumerName, consumerRoutingKeys)
+				registerError := rabbit.Register(viper.GetString("exchange.name"), consumer.handle, consumerName, consumerRoutingKeys)
 				checkError(registerError)
 			}
 		}
